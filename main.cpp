@@ -11,51 +11,58 @@
 using namespace std;
 
 typedef struct ColorRecord {
-    int r;
-    int g;
-    int b;
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+    unsigned char a;
     int count;
 } ColorRecord;
 
+typedef struct Coordinate {
+    int x;
+    int y;
+} Coordinate;
 
-float colorDist(string col1, string col2){
-    int firstComma = col1.find(",");
-    int secondComma = col1.find(",", firstComma+1);
-    
-    int cR = stoi(col1.substr(0, firstComma));
-    int cG = stoi(col1.substr(firstComma+1, secondComma-firstComma-1));
-    int cB = stoi(col1.substr(secondComma+1));
+//A loop is a border of pixels between two colors
+typedef struct Loop {
+    int length;
+    Color color;
+    vector<Coordinate> pixels;
+} Loop;
 
-    int firstComma2 = col2.find(",");
-    int secondComma2 = col2.find(",", firstComma2+1);
-    
-    int cR2 = stoi(col2.substr(0, firstComma2));
-    int cG2 = stoi(col2.substr(firstComma2+1, secondComma2-firstComma2-1));
-    int cB2 = stoi(col2.substr(secondComma2+1));
-
-    return Vector3Distance({(float)cR, (float)cG, (float)cB}, {(float)cR2, (float)cG2, (float)cB2});
-    
-}
+//A region is a space of like-color pixels that may contain several loops
+//The largest loop will become the basis of the shape defining the region while the
+//smaller loops will be used in later regions
+typedef struct Region {
+    Color color;
+    unordered_map<string, bool> unmatchedPixels;
+    vector<Loop*> loops;
+} Region;
 
 string colorToString(Color c){
-    return to_string(c.r).append(",").append(to_string(c.g)).append(",").append(to_string(c.b));
+    return to_string(c.r).append(",").append(to_string(c.g)).append(",").append(to_string(c.b)).append(",").append(to_string(c.a));
 }
 
 bool compColor(const ColorRecord &a, const ColorRecord &b) {
     return a.count > b.count;
 }
 
+float ColorDistance(Color a, Color b){
+    return sqrtf((a.r - b.r)*(a.r - b.r) + (a.g - b.g)*(a.g - b.g) + (a.b - b.b)*(a.b - b.b) + (a.a - b.a)*(a.a - b.a));
+}
+
 Color getClosestPaletteColor(Color col, vector<ColorRecord> &palette){
     Color closest = col;
     float closestDist = 999999;
     for(int i = 0; i < palette.size(); i++){
-        float dist = Vector3Distance({(float)col.r, (float)col.g, (float)col.b}, {(float)palette[i].r, (float)palette[i].g, (float)palette[i].b});
         
+        float dist = ColorDistance(col, {palette[i].r, palette[i].g, palette[i].b, palette[i].a});
         if(dist < closestDist){
             closestDist = dist;
             closest.r = palette[i].r;
             closest.g = palette[i].g;
             closest.b = palette[i].b;
+            closest.a = palette[i].a;
         }
     }
     
@@ -68,8 +75,8 @@ typedef struct SpatialKey {
 } SpatialKey;
 
 
-int hashCoords(int x, int y, int z) {
-  const int hash = (x * 92837111) ^ (y * 689287499) ^ (z * 283923481);
+int hashCoords(int x, int y, int z, int w) {
+  const int hash = (x * 92837111) ^ (y * 689287499) ^ (z * 283923481) ^ (w * 392018394);
   return abs(hash);
 }
 //Used when sorting spatial hash array
@@ -79,11 +86,14 @@ int compareKeys(const void *a, const void *b){
   return l-r;
 }
 
+
+
 void reduceColors(Image &image, int numColors, unordered_map<string, int> &colorData, vector<ColorRecord> &recordedColors){
     //Get color map
     for(int i = 0; i < image.width; i++){
         for(int j = 0; j < image.height; j++){
             Color col = GetImageColor(image, i, j);
+            
             string c = colorToString(col);
             if(colorData.find(c) != colorData.end()){
                 colorData[c]++;
@@ -101,15 +111,18 @@ void reduceColors(Image &image, int numColors, unordered_map<string, int> &color
     for(auto it = colorData.begin(); it != colorData.end(); it++){
         int firstComma = it->first.find(",");
         int secondComma = it->first.find(",", firstComma+1);
+        int thirdComma = it->first.find(",", secondComma+1);
         
         int cR = stoi(it->first.substr(0, firstComma));
         int cG = stoi(it->first.substr(firstComma+1, secondComma-firstComma-1));
-        int cB = stoi(it->first.substr(secondComma+1));
+        int cB = stoi(it->first.substr(secondComma+1, thirdComma-secondComma-1));
+        int cA = stoi(it->first.substr(thirdComma+1));
         
         ColorRecord c;
         c.r = cR;
         c.g = cG;
         c.b = cB;
+        c.a = cA;
         c.count = it->second;
         recordedColors.push_back(c);
     }
@@ -123,7 +136,7 @@ void reduceColors(Image &image, int numColors, unordered_map<string, int> &color
     */
 
     //Grouping alike colors using spatial hashing
-    int hashWidth = 10;
+    int hashWidth = 5;
     int hashTableSize = recordedColors.size() * 5;
 
     //Records the index, bucket of each recorded color    
@@ -140,8 +153,9 @@ void reduceColors(Image &image, int numColors, unordered_map<string, int> &color
         int x = floor(recordedColors[i].r / hashWidth);
         int y = floor(recordedColors[i].g / hashWidth);
         int z = floor(recordedColors[i].b / hashWidth);
+        int w = floor(recordedColors[i].a / hashWidth);
 
-        int bucket = hashCoords(x, y, z) % hashTableSize;
+        int bucket = hashCoords(x, y, z, w) % hashTableSize;
         keyTable[i].bucket = bucket;
         keyTable[i].index = i;
     }
@@ -169,12 +183,14 @@ void reduceColors(Image &image, int numColors, unordered_map<string, int> &color
         int x = recordedColors[i].r;
         int y = recordedColors[i].g;
         int z = recordedColors[i].b;
+        int w = recordedColors[i].a;
 
         int bx = floor(x / hashWidth);
         int by = floor(y / hashWidth);
         int bz = floor(z / hashWidth);
+        int bw = floor(w / hashWidth);
 
-        int bucket = hashCoords(bx, by, bz) % hashTableSize;
+        int bucket = hashCoords(bx, by, bz, bw) % hashTableSize;
         int startingIndex = startingIndexTable[bucket];
 
         //Of the group of similar colors, which is the most common
@@ -182,6 +198,7 @@ void reduceColors(Image &image, int numColors, unordered_map<string, int> &color
         dominantColor.r = x;
         dominantColor.g = y;
         dominantColor.b = z;
+        dominantColor.a = w;
         //How many pixels for all alike colors
         int totalAlike = recordedColors[i].count;
         //
@@ -193,13 +210,14 @@ void reduceColors(Image &image, int numColors, unordered_map<string, int> &color
         while(startingIndex != -1 && startingIndex < recordedColors.size() && keyTable[startingIndex].bucket == bucket){
             int colorIndex = keyTable[startingIndex].index;
             //Check if there is a valid color nearby
-            if(Vector3Distance({(float)x, (float)y, (float)z}, {(float)recordedColors[colorIndex].r, (float)recordedColors[colorIndex].g, (float)recordedColors[colorIndex].b}) < hashWidth && i != colorIndex && recordedColors[colorIndex].count > 0){
+            if(ColorDistance({(unsigned char)x, (unsigned char)y, (unsigned char)z, (unsigned char)w}, {recordedColors[colorIndex].r, recordedColors[colorIndex].g, recordedColors[colorIndex].b, recordedColors[colorIndex].a}) < hashWidth && i != colorIndex && recordedColors[colorIndex].count > 0){
                 merge = true;
                 //If this color is more common record so
                 if(recordedColors[colorIndex].count > recordedColors[dominantIndex].count){
                     dominantColor.r = recordedColors[colorIndex].r;
                     dominantColor.g = recordedColors[colorIndex].g;
                     dominantColor.b = recordedColors[colorIndex].b;
+                    dominantColor.a = recordedColors[colorIndex].a;
                     dominantIndex = colorIndex;
                     totalAlike += recordedColors[colorIndex].count;
                     dominantCount = recordedColors[colorIndex].count;
@@ -255,18 +273,275 @@ void reduceColors(Image &image, int numColors, unordered_map<string, int> &color
         }
     }
     
+}
 
-    /*
-    string greatest = "";
-    int most = -1;
-    for(auto it = colorData.begin(); it != colorData.end(); it++){
-        if(it->second > most){
-            greatest = it->first;
-            most = it->second;
+bool colorEqual(Color a, Color b){
+    return a.r == b.r && a.g == b.g && a.b == b.b && (a.a == b.a || a.a == 0 || b.a == 0);
+}
+
+string coordToString(Coordinate c){
+    return to_string(c.x).append(",").append(to_string(c.y));
+}
+Coordinate stringToCoord(string c){
+    int split = c.find(",");
+    int x = stoi(c.substr(0, split));
+    int y = stoi(c.substr(split+1));
+    return {x, y};
+}
+
+void refineBorders(Image &srcImage, Image &refinedImage, vector<Region*> &regions){
+    Color erased;
+    erased.r = 255;
+    erased.g = 255;
+    erased.b = 255;
+    erased.a = 0;
+
+
+    for(int i = 0; i < srcImage.width; i++){
+        for(int j = 0; j < srcImage.height; j++){
+            Color col = GetImageColor(refinedImage, i, j);
+            if(col.a == 0){
+                continue;
+            }
+            //Otherwise, create a new region to explore
+            Region *r = new Region();
+            
+            r->color = col;
+            
+
+            
+            //exit(0);
+            //Flood fill the region to detect its borders and clear the region from future generation
+            vector<Coordinate> unexplored;
+            unordered_map<string, bool> explored;
+            unexplored.push_back({i, j});
+
+            int q = 0;
+            while(unexplored.size() > 0){
+                q++;
+                Coordinate curr = unexplored[0];
+
+                if(q % 10000 == 0){
+                    //cout << q << endl;
+                    ///cout << unexplored.size() << endl;
+                }
+                
+                unexplored.erase(unexplored.begin());
+                explored[coordToString(curr)] = true;
+                //explored[curr] = true;
+                //Automatically mark as an edge
+                bool isBorderPixel = false;
+                if(curr.x == 0 || curr.x == srcImage.width-1 || curr.y == 0 || curr.y == srcImage.height-1){
+                    isBorderPixel = true;
+                }
+
+                /*
+                2 purposes:
+                1. Find adjacent pixels that are part of the region
+                2. Detect if the current pixel is an edge (borders another color)
+                */
+                if(curr.x > 0 && colorEqual(GetImageColor(refinedImage, curr.x-1, curr.y), col)){
+                    Coordinate c;
+                    c.x = curr.x-1;
+                    c.y = curr.y;
+                    if(!explored[coordToString(c)]){
+                        unexplored.push_back({curr.x-1, curr.y});
+                        explored[coordToString(c)] = true;
+                    }
+                }
+                else {
+                    isBorderPixel = true;
+                }
+                if(curr.x < srcImage.width-1 && colorEqual(GetImageColor(refinedImage, curr.x+1, curr.y), col)){
+                    Coordinate c;
+                    c.x = curr.x+1;
+                    c.y = curr.y;
+                    if(!explored[coordToString(c)]){
+                        unexplored.push_back({curr.x+1, curr.y});
+                        explored[coordToString(c)] = true;
+                    }
+                }
+                else {
+                    isBorderPixel = true;
+                }
+                if(curr.y > 0 && colorEqual(GetImageColor(refinedImage, curr.x, curr.y-1), col)){
+                    Coordinate c;
+                    c.x = curr.x;
+                    c.y = curr.y-1;
+                    if(!explored[coordToString(c)]){
+                        unexplored.push_back({curr.x, curr.y-1});
+                        explored[coordToString(c)] = true;
+                    }
+                }
+                else {
+                    isBorderPixel = true;
+                }
+                if(curr.y < srcImage.height-1 && colorEqual(GetImageColor(refinedImage, curr.x, curr.y+1), col)){
+                    Coordinate c;
+                    c.x = curr.x;
+                    c.y = curr.y+1;
+                    if(!explored[coordToString(c)]){
+                        unexplored.push_back({curr.x, curr.y+1});
+                        explored[coordToString(c)] = true;
+                    }
+                }
+                else {
+                    isBorderPixel = true;
+                }
+                /*
+                if(i < srcImage.height-1 && j < srcImage.height-1 && colorEqual(GetImageColor(refinedImage, i+1, j+1), col)){
+                    Coordinate c;
+                    c.x = i+1;
+                    c.y = j+1;
+                    if(!explored[coordToString(c)]){
+                        unexplored.push_back({i+1, j+1});
+                    }
+                }
+                else {
+                    isBorderPixel = true;
+                }
+                if(i > 0 && j < srcImage.height-1 && colorEqual(GetImageColor(refinedImage, i-1, j+1), col)){
+                    Coordinate c;
+                    c.x = i-1;
+                    c.y = j+1;
+                    if(!explored[coordToString(c)]){
+                        unexplored.push_back({i-1, j+1});
+                    }
+                }
+                else {
+                    isBorderPixel = true;
+                }
+                if(i < srcImage.height-1 && j > 0 && colorEqual(GetImageColor(refinedImage, i+1, j-1), col)){
+                    Coordinate c;
+                    c.x = i+1;
+                    c.y = j-1;
+                    if(!explored[coordToString(c)]){
+                        unexplored.push_back({i+1, j-1});
+                    }
+                }
+                else {
+                    isBorderPixel = true;
+                }
+
+                if(i > 0 && j > 0 && colorEqual(GetImageColor(refinedImage, i-1, j-1), col)){
+                    Coordinate c;
+                    c.x = i-1;
+                    c.y = j-1;
+                    if(!explored[coordToString(c)]){
+                        unexplored.push_back({i-1, j-1});
+                    }
+                }
+                else {
+                    isBorderPixel = true;
+                }
+                */
+
+                if(isBorderPixel){
+                    r->unmatchedPixels[coordToString(curr)] = true;
+                    ImageDrawPixel(&refinedImage, curr.x, curr.y, {col.r, col.g, col.b, 0});
+                }
+                else {
+                    //Mark current pixel as clear
+                    ImageDrawPixel(&refinedImage, curr.x, curr.y, {col.r, col.g, col.b, 0});
+                }
+            }
+            if(q > 4)
+                cout << "Created region of color: " << +r->color.r << ", " << +r->color.g << ", " << +r->color.b << ", " << +r->color.a << "size: " << q << "; " << i << ", " << j << endl;
+            regions.push_back(r);
         }
     }
-    mostData[greatest] = most;
-    */
+
+    cout << "Generated " << regions.size() << " regions" << endl;
+    for(int i = 0; i < regions.size(); i++){
+        Color c = regions[i]->color;
+        //int x = 0;
+        for(auto it = regions[i]->unmatchedPixels.begin(); it != regions[i]->unmatchedPixels.end(); it++){
+            Coordinate a = stringToCoord(it->first);
+            //cout << a.x << "," << a.y << endl;
+            ImageDrawPixel(&refinedImage, a.x, a.y, c);
+            //x++;
+        }
+        //cout << i <<","<<x << endl;
+    }
+
+
+    
+    for(int i = 0; i < regions.size(); i++){
+        Region *r = regions[i];
+        cout << "Generating loops for region of color: " << +r->color.r << ", " << +r->color.g << ", " << +r->color.b << ", " << +r->color.a << endl;
+
+        
+        //Now left with a cluster of unsorted pixels, they must be sorted into loops
+        
+
+        while(r->unmatchedPixels.size() > 0){
+            
+            Loop *loop = new Loop();
+
+            Coordinate curr = stringToCoord(r->unmatchedPixels.begin()->first);
+            Coordinate nxt = curr;
+            Color currCol = GetImageColor(refinedImage, curr.x, curr.y);
+            r->unmatchedPixels.erase(coordToString(curr));
+
+            loop->color = currCol;
+            loop->pixels.push_back(curr);
+
+            bool start = false;
+            while(!(curr.x == nxt.x && curr.y == nxt.y) || !start){
+                start = true;
+                if(nxt.y - 1 >= 0 && colorEqual(currCol, GetImageColor(refinedImage, nxt.x, nxt.y-1)) && r->unmatchedPixels[coordToString({nxt.x, nxt.y-1})]){
+                    nxt.y--;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                else if(nxt.x - 1 >= 0 && colorEqual(currCol, GetImageColor(refinedImage, nxt.x-1, nxt.y)) && r->unmatchedPixels[coordToString({nxt.x-1, nxt.y})]){
+                    nxt.x--;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                else if(nxt.y + 1 < refinedImage.height && colorEqual(currCol, GetImageColor(refinedImage, nxt.x, nxt.y+1)) && r->unmatchedPixels[coordToString({nxt.x, nxt.y+1})]){
+                    nxt.y++;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                else if(nxt.x + 1  < refinedImage.width && colorEqual(currCol, GetImageColor(refinedImage, nxt.x+1, nxt.y)) && r->unmatchedPixels[coordToString({nxt.x+1, nxt.y})]){
+                    nxt.x++;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                
+                else if(nxt.x + 1 < refinedImage.width && nxt.y + 1 < refinedImage.height && colorEqual(currCol, GetImageColor(refinedImage, nxt.x+1, nxt.y+1)) && r->unmatchedPixels[coordToString({nxt.x+1, nxt.y+1})]){
+                    nxt.x++;
+                    nxt.y++;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                else if(nxt.x - 1 >= 0 && nxt.y + 1 < refinedImage.height && colorEqual(currCol, GetImageColor(refinedImage, nxt.x-1, nxt.y+1)) && r->unmatchedPixels[coordToString({nxt.x-1, nxt.y+1})]){
+                    nxt.x--;
+                    nxt.y++;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                else if(nxt.x + 1 < refinedImage.width && nxt.y - 1 >= 0 && colorEqual(currCol, GetImageColor(refinedImage, nxt.x+1, nxt.y-1)) && r->unmatchedPixels[coordToString({nxt.x+1, nxt.y-1})]){
+                    nxt.x++;
+                    nxt.y--;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                else if(nxt.x - 1 >= 0 && nxt.y - 1 >= 0 && colorEqual(currCol, GetImageColor(refinedImage, nxt.x-1, nxt.y-1)) && r->unmatchedPixels[coordToString({nxt.x-1, nxt.y-1})]){
+                    nxt.x--;
+                    nxt.y--;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                
+
+                loop->pixels.push_back(nxt);
+            }
+            loop->pixels.erase(loop->pixels.begin() + loop->pixels.size()-1);
+            loop->length = loop->pixels.size();
+            
+            r->loops.push_back(loop);
+            cout << "Added new loop of length: " << loop->length << endl;
+        }
+    }
+    
+
+    cout << "Defined " << regions.size() << " regions" << endl;
+    
+
 }
 
 int main(){
@@ -290,19 +565,20 @@ int main(){
         cout << "Failed to load image: " << filePath << endl;
         exit(0);
     }
+    ImageFormat(&userImg, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
     //Image w/ reduced colors
     Image filteredImg = ImageCopy(userImg);
 
     //Shows the extraction of edges
-    Image refinedBorders = ImageCopy(userImg);
+    Image refinedBorders;
 
     //Shows the creation of shapes for SVG image based on pixel edges (with edge reduction applied)
-    Image definedPolygons = ImageCopy(userImg);
+    Image definedPolygons;
     
     Texture2D imgTexture = LoadTextureFromImage(userImg);
-    Texture2D filteredTexture = LoadTextureFromImage(filteredImg);
-    Texture2D refinedTexture = LoadTextureFromImage(refinedBorders);
-    Texture2D definedTexture = LoadTextureFromImage(definedPolygons);
+    Texture2D filteredTexture;
+    Texture2D refinedTexture;
+    Texture2D definedTexture;
 
     float imgWidth = filteredImg.width;
     float imgHeight = filteredImg.height;
@@ -318,30 +594,36 @@ int main(){
     //A collection of every scene color and their frequency
     vector<ColorRecord> recordedColors;
     unordered_map<string, int> colorData;
+
+    vector<Region*> regions;
     
 
     
 	while(!WindowShouldClose()){
-
+        
         if(IsKeyPressed(KEY_SPACE)){
             if(completedSteps == 0){
                 reduceColors(filteredImg, colorSize, colorData, recordedColors);
                 filteredTexture = LoadTextureFromImage(filteredImg);
+                refinedBorders = ImageCopy(filteredImg);
                 completedSteps++;
             }
             else if(completedSteps == 1){
-
+                refineBorders(filteredImg, refinedBorders, regions);
+                refinedTexture = LoadTextureFromImage(refinedBorders);
                 completedSteps++;
+                
             }
             else if(completedSteps == 2){
                 
+
                 completedSteps++;
             }
         }
 		
 		BeginDrawing();
 		
-		ClearBackground(WHITE);
+		ClearBackground(GRAY);
 		
         DrawTextureEx(imgTexture, {0, screenHeight - imgHeight*scale}, 0, scale, WHITE);
         
@@ -371,11 +653,11 @@ int main(){
             //cout << w << endl;
             
             for(int i = 0; i < colorSize; i++){
-                DrawRectangle(i*(int)w, 160, (int)w, min((int)w, 100), {(unsigned char)recordedColors[i].r, (unsigned char)recordedColors[i].g, (unsigned char)recordedColors[i].b, 255});
+                DrawRectangle(i*(int)w, 160, (int)w, min((int)w, 100), {(unsigned char)recordedColors[i].r, (unsigned char)recordedColors[i].g, (unsigned char)recordedColors[i].b, (unsigned char)recordedColors[i].a});
             }
         }
         if(completedSteps >= 2){
-            DrawTextureEx(filteredTexture, {stepWidth*2, screenHeight - imgHeight*scale}, 0, scale, WHITE);
+            DrawTextureEx(refinedTexture, {stepWidth*2, screenHeight - imgHeight*scale}, 0, scale, WHITE);
         }
         if(completedSteps >= 3){
             DrawTextureEx(filteredTexture, {stepWidth*3, screenHeight - imgHeight*scale}, 0, scale, WHITE);
