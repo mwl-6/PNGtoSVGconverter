@@ -10,6 +10,9 @@
 
 using namespace std;
 
+Color nullColor;
+float polygonError = 5.0f;
+
 typedef struct ColorRecord {
     unsigned char r;
     unsigned char g;
@@ -18,6 +21,7 @@ typedef struct ColorRecord {
     int count;
 } ColorRecord;
 
+
 typedef struct Coordinate {
     int x;
     int y;
@@ -25,9 +29,13 @@ typedef struct Coordinate {
 
 //A loop is a border of pixels between two colors
 typedef struct Loop {
+    bool closed;
     int length;
+    int idealLength;
+    float idealError;
     Color color;
     vector<Coordinate> pixels;
+    vector<Coordinate> simplifiedShape;
 } Loop;
 
 //A region is a space of like-color pixels that may contain several loops
@@ -86,7 +94,26 @@ int compareKeys(const void *a, const void *b){
   return l-r;
 }
 
+bool colorEqual(Color a, Color b){
+    return a.r == b.r && a.g == b.g && a.b == b.b && (a.a == b.a || a.a == 0 || b.a == 0);
+}
 
+void findNullColor(vector<ColorRecord> &colors){
+    bool foundColor = false;
+    while(!foundColor){
+        nullColor.r = (unsigned char)(rand() % 255);
+        nullColor.g = (unsigned char)(rand() % 255);
+        nullColor.b = (unsigned char)(rand() % 255);
+        nullColor.a = 255;
+        foundColor = true;
+        for(int i = 0; i < colors.size(); i++){
+            if(colorEqual(nullColor, {colors[i].r, colors[i].g, colors[i].b, colors[i].a})){
+                foundColor = false;
+                break;
+            }
+        }
+    }
+}
 
 void reduceColors(Image &image, int numColors, unordered_map<string, int> &colorData, vector<ColorRecord> &recordedColors){
     //Get color map
@@ -263,21 +290,33 @@ void reduceColors(Image &image, int numColors, unordered_map<string, int> &color
 
     cout << "Reduced to top " << recordedColors.size() << " colors" << endl;
 
+    /*
+    for(int i = 0; i < recordedColors.size(); i++){
+        if(recordedColors[i].r == 0 && recordedColors[i].g == 0 && recordedColors[i].b == 0 && recordedColors[i].a > 0){
+            recordedColors[i].r = 1;
+        }
+    }
+    */
     //Modify the image colors to match the reduced palette.
+    findNullColor(recordedColors);
+
 
     for(int i = 0; i < image.width; i++){
         for(int j = 0; j < image.height; j++){
             Color col = GetImageColor(image, i, j);
             Color select = getClosestPaletteColor(col, recordedColors);
-            ImageDrawPixel(&image, i, j, select);
+            if(col.r == 0 && col.g == 0 && col.b == 0 && col.a == 0){
+                ImageDrawPixel(&image, i, j, nullColor);
+            }
+            else{
+                ImageDrawPixel(&image, i, j, select);
+            }
         }
     }
     
 }
 
-bool colorEqual(Color a, Color b){
-    return a.r == b.r && a.g == b.g && a.b == b.b && (a.a == b.a || a.a == 0 || b.a == 0);
-}
+
 
 string coordToString(Coordinate c){
     return to_string(c.x).append(",").append(to_string(c.y));
@@ -309,8 +348,6 @@ void refineBorders(Image &srcImage, Image &refinedImage, vector<Region*> &region
             r->color = col;
             
 
-            
-            //exit(0);
             //Flood fill the region to detect its borders and clear the region from future generation
             vector<Coordinate> unexplored;
             unordered_map<string, bool> explored;
@@ -321,10 +358,6 @@ void refineBorders(Image &srcImage, Image &refinedImage, vector<Region*> &region
                 q++;
                 Coordinate curr = unexplored[0];
 
-                if(q % 10000 == 0){
-                    //cout << q << endl;
-                    ///cout << unexplored.size() << endl;
-                }
                 
                 unexplored.erase(unexplored.begin());
                 explored[coordToString(curr)] = true;
@@ -340,6 +373,7 @@ void refineBorders(Image &srcImage, Image &refinedImage, vector<Region*> &region
                 1. Find adjacent pixels that are part of the region
                 2. Detect if the current pixel is an edge (borders another color)
                 */
+                
                 if(curr.x > 0 && colorEqual(GetImageColor(refinedImage, curr.x-1, curr.y), col)){
                     Coordinate c;
                     c.x = curr.x-1;
@@ -389,53 +423,54 @@ void refineBorders(Image &srcImage, Image &refinedImage, vector<Region*> &region
                     isBorderPixel = true;
                 }
                 /*
-                if(i < srcImage.height-1 && j < srcImage.height-1 && colorEqual(GetImageColor(refinedImage, i+1, j+1), col)){
+                if(curr.x < srcImage.height-1 && curr.y < srcImage.height-1 && colorEqual(GetImageColor(refinedImage, curr.x+1, curr.y+1), col)){
                     Coordinate c;
-                    c.x = i+1;
-                    c.y = j+1;
+                    c.x = curr.x+1;
+                    c.y = curr.y+1;
                     if(!explored[coordToString(c)]){
-                        unexplored.push_back({i+1, j+1});
+                        unexplored.push_back({curr.x+1, curr.y+1});
                     }
                 }
                 else {
                     isBorderPixel = true;
                 }
-                if(i > 0 && j < srcImage.height-1 && colorEqual(GetImageColor(refinedImage, i-1, j+1), col)){
+                if(curr.x > 0 && curr.y < srcImage.height-1 && colorEqual(GetImageColor(refinedImage, curr.x-1, curr.y+1), col)){
                     Coordinate c;
-                    c.x = i-1;
-                    c.y = j+1;
+                    c.x = curr.x-1;
+                    c.y = curr.y+1;
                     if(!explored[coordToString(c)]){
-                        unexplored.push_back({i-1, j+1});
+                        unexplored.push_back({curr.x-1, curr.y+1});
                     }
                 }
                 else {
                     isBorderPixel = true;
                 }
-                if(i < srcImage.height-1 && j > 0 && colorEqual(GetImageColor(refinedImage, i+1, j-1), col)){
+                if(curr.x < srcImage.height-1 && curr.y > 0 && colorEqual(GetImageColor(refinedImage, curr.x+1, curr.y-1), col)){
                     Coordinate c;
-                    c.x = i+1;
-                    c.y = j-1;
+                    c.x = curr.x+1;
+                    c.y = curr.y-1;
                     if(!explored[coordToString(c)]){
-                        unexplored.push_back({i+1, j-1});
+                        unexplored.push_back({curr.x+1, curr.y-1});
                     }
                 }
                 else {
                     isBorderPixel = true;
                 }
 
-                if(i > 0 && j > 0 && colorEqual(GetImageColor(refinedImage, i-1, j-1), col)){
+                if(curr.x > 0 && curr.y > 0 && colorEqual(GetImageColor(refinedImage, curr.x-1, curr.y-1), col)){
                     Coordinate c;
-                    c.x = i-1;
-                    c.y = j-1;
+                    c.x = curr.x-1;
+                    c.y = curr.y-1;
                     if(!explored[coordToString(c)]){
-                        unexplored.push_back({i-1, j-1});
+                        unexplored.push_back({curr.x-1, curr.y-1});
                     }
                 }
                 else {
                     isBorderPixel = true;
                 }
                 */
-
+                
+                
                 if(isBorderPixel){
                     r->unmatchedPixels[coordToString(curr)] = true;
                     ImageDrawPixel(&refinedImage, curr.x, curr.y, {col.r, col.g, col.b, 0});
@@ -445,30 +480,41 @@ void refineBorders(Image &srcImage, Image &refinedImage, vector<Region*> &region
                     ImageDrawPixel(&refinedImage, curr.x, curr.y, {col.r, col.g, col.b, 0});
                 }
             }
+            /*
             if(q > 4)
                 cout << "Created region of color: " << +r->color.r << ", " << +r->color.g << ", " << +r->color.b << ", " << +r->color.a << "size: " << q << "; " << i << ", " << j << endl;
+            */
             regions.push_back(r);
         }
     }
 
-    cout << "Generated " << regions.size() << " regions" << endl;
-    for(int i = 0; i < regions.size(); i++){
+    
+    for(int i = regions.size()-1; i >= 0; i--){
         Color c = regions[i]->color;
-        //int x = 0;
+        
+        
+        //Removing irrelevant regions
+        if(regions[i]->unmatchedPixels.size() < 10){
+            regions.erase(regions.begin() + i);
+            continue;
+        }
+        
+        
         for(auto it = regions[i]->unmatchedPixels.begin(); it != regions[i]->unmatchedPixels.end(); it++){
             Coordinate a = stringToCoord(it->first);
-            //cout << a.x << "," << a.y << endl;
+            
             ImageDrawPixel(&refinedImage, a.x, a.y, c);
-            //x++;
+            
         }
-        //cout << i <<","<<x << endl;
+        
+        
     }
+    cout << "Generated " << regions.size() << " regions" << endl;
 
 
-    
     for(int i = 0; i < regions.size(); i++){
         Region *r = regions[i];
-        cout << "Generating loops for region of color: " << +r->color.r << ", " << +r->color.g << ", " << +r->color.b << ", " << +r->color.a << endl;
+        //cout << "Generating loops for region of color: " << +r->color.r << ", " << +r->color.g << ", " << +r->color.b << ", " << +r->color.a << ", size: " << r->unmatchedPixels.size() << endl;
 
         
         //Now left with a cluster of unsorted pixels, they must be sorted into loops
@@ -476,72 +522,258 @@ void refineBorders(Image &srcImage, Image &refinedImage, vector<Region*> &region
 
         while(r->unmatchedPixels.size() > 0){
             
-            Loop *loop = new Loop();
-
             Coordinate curr = stringToCoord(r->unmatchedPixels.begin()->first);
             Coordinate nxt = curr;
             Color currCol = GetImageColor(refinedImage, curr.x, curr.y);
-            r->unmatchedPixels.erase(coordToString(curr));
+            
+            r->unmatchedPixels.erase(r->unmatchedPixels.begin()->first);
 
+            if(currCol.a == 0){
+                continue;
+            }
+            
+            Loop *loop = new Loop();
             loop->color = currCol;
             loop->pixels.push_back(curr);
 
             bool start = false;
-            while(!(curr.x == nxt.x && curr.y == nxt.y) || !start){
-                start = true;
-                if(nxt.y - 1 >= 0 && colorEqual(currCol, GetImageColor(refinedImage, nxt.x, nxt.y-1)) && r->unmatchedPixels[coordToString({nxt.x, nxt.y-1})]){
-                    nxt.y--;
-                    r->unmatchedPixels.erase(coordToString(nxt));
-                }
-                else if(nxt.x - 1 >= 0 && colorEqual(currCol, GetImageColor(refinedImage, nxt.x-1, nxt.y)) && r->unmatchedPixels[coordToString({nxt.x-1, nxt.y})]){
-                    nxt.x--;
-                    r->unmatchedPixels.erase(coordToString(nxt));
-                }
-                else if(nxt.y + 1 < refinedImage.height && colorEqual(currCol, GetImageColor(refinedImage, nxt.x, nxt.y+1)) && r->unmatchedPixels[coordToString({nxt.x, nxt.y+1})]){
-                    nxt.y++;
-                    r->unmatchedPixels.erase(coordToString(nxt));
-                }
-                else if(nxt.x + 1  < refinedImage.width && colorEqual(currCol, GetImageColor(refinedImage, nxt.x+1, nxt.y)) && r->unmatchedPixels[coordToString({nxt.x+1, nxt.y})]){
-                    nxt.x++;
-                    r->unmatchedPixels.erase(coordToString(nxt));
-                }
-                
-                else if(nxt.x + 1 < refinedImage.width && nxt.y + 1 < refinedImage.height && colorEqual(currCol, GetImageColor(refinedImage, nxt.x+1, nxt.y+1)) && r->unmatchedPixels[coordToString({nxt.x+1, nxt.y+1})]){
-                    nxt.x++;
-                    nxt.y++;
-                    r->unmatchedPixels.erase(coordToString(nxt));
-                }
-                else if(nxt.x - 1 >= 0 && nxt.y + 1 < refinedImage.height && colorEqual(currCol, GetImageColor(refinedImage, nxt.x-1, nxt.y+1)) && r->unmatchedPixels[coordToString({nxt.x-1, nxt.y+1})]){
-                    nxt.x--;
-                    nxt.y++;
-                    r->unmatchedPixels.erase(coordToString(nxt));
-                }
-                else if(nxt.x + 1 < refinedImage.width && nxt.y - 1 >= 0 && colorEqual(currCol, GetImageColor(refinedImage, nxt.x+1, nxt.y-1)) && r->unmatchedPixels[coordToString({nxt.x+1, nxt.y-1})]){
-                    nxt.x++;
-                    nxt.y--;
-                    r->unmatchedPixels.erase(coordToString(nxt));
-                }
-                else if(nxt.x - 1 >= 0 && nxt.y - 1 >= 0 && colorEqual(currCol, GetImageColor(refinedImage, nxt.x-1, nxt.y-1)) && r->unmatchedPixels[coordToString({nxt.x-1, nxt.y-1})]){
-                    nxt.x--;
-                    nxt.y--;
-                    r->unmatchedPixels.erase(coordToString(nxt));
-                }
-                
+            int loopSize = 0;
+            bool closeLoop = false;
 
+            while((!(curr.x == nxt.x && curr.y == nxt.y) || !start) && !closeLoop){
+                loopSize++;
+                start = true;
+
+
+                
+                if(nxt.y - 1 >= 0 && r->unmatchedPixels.count(coordToString({nxt.x, nxt.y-1})) == 1){
+                    nxt.y--;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                else if(nxt.x - 1 >= 0 && r->unmatchedPixels.count(coordToString({nxt.x-1, nxt.y})) == 1){
+                    nxt.x--;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                else if(nxt.y + 1 < refinedImage.height && r->unmatchedPixels.count(coordToString({nxt.x, nxt.y+1})) == 1){
+                    nxt.y++;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                else if(nxt.x + 1  < refinedImage.width && r->unmatchedPixels.count(coordToString({nxt.x+1, nxt.y})) == 1){
+                    nxt.x++;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                
+                else if(nxt.x + 1 < refinedImage.width && nxt.y + 1 < refinedImage.height && r->unmatchedPixels.count(coordToString({nxt.x+1, nxt.y+1})) == 1){
+                    nxt.x++;
+                    nxt.y++;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                else if(nxt.x - 1 >= 0 && nxt.y + 1 < refinedImage.height && r->unmatchedPixels.count(coordToString({nxt.x-1, nxt.y+1})) == 1){
+                    nxt.x--;
+                    nxt.y++;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                else if(nxt.x + 1 < refinedImage.width && nxt.y - 1 >= 0 && r->unmatchedPixels.count(coordToString({nxt.x+1, nxt.y-1})) == 1){
+                    nxt.x++;
+                    nxt.y--;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                else if(nxt.x - 1 >= 0 && nxt.y - 1 >= 0 && r->unmatchedPixels.count(coordToString({nxt.x-1, nxt.y-1})) == 1){
+                    nxt.x--;
+                    nxt.y--;
+                    r->unmatchedPixels.erase(coordToString(nxt));
+                }
+                else if(abs(nxt.x - curr.x) <= 1 && abs(nxt.y - curr.y) <= 1){
+                    nxt.x = curr.x;
+                    nxt.y = curr.y;
+                }
+                else {
+
+                    /*There are some edge cases where a border may branch off in a way that requires
+                    backtracking to continue. By default, this isn't possible as the pixels leading back to the
+                    next path have already been covered.
+
+                    To address this, perform a search for the nearest pixel and jump to it
+                    */
+                    float shortestDist = 9999;
+                    Coordinate shortestI;
+                    shortestI.x = -1;
+                    shortestI.y = -1;
+                    
+                    for(auto it = r->unmatchedPixels.begin(); it != r->unmatchedPixels.end(); it++){
+                        Coordinate t = stringToCoord(it->first);
+                        float d = Vector2Distance({(float)nxt.x, (float)nxt.y}, {(float)t.x, (float)t.y});
+                        if(d < shortestDist){
+                            shortestDist = d;
+                            shortestI.x = t.x;
+                            shortestI.y = t.y;
+                        }
+                    }
+                    if(shortestI.x >= 0){
+
+                        
+                        if(Vector2Distance({(float)nxt.x, (float)nxt.y}, {(float)curr.x, (float)curr.y}) < shortestDist){
+                            nxt.x = curr.x;
+                            nxt.y = curr.y;
+                        }
+                        else{
+                            nxt.x = shortestI.x;
+                            nxt.y = shortestI.y;
+                            r->unmatchedPixels.erase(coordToString(nxt));
+                        }
+                        
+                    }
+                    else if(r->unmatchedPixels.size() == 0){
+                        nxt.x = curr.x;
+                        nxt.y = curr.y;
+                    }
+                    else {
+                        
+                        //No other options, end the loop
+                        closeLoop = true;
+                    }
+
+                    
+                }
+                
                 loop->pixels.push_back(nxt);
+
+                if(loopSize > srcImage.width * srcImage.height){
+                    closeLoop = true;
+                    cout << "Too large, close loop" << endl;
+                }
             }
-            loop->pixels.erase(loop->pixels.begin() + loop->pixels.size()-1);
+            //loop->pixels.erase(loop->pixels.begin() + loop->pixels.size()-1);
             loop->length = loop->pixels.size();
+            loop->closed = !closeLoop;
             
             r->loops.push_back(loop);
-            cout << "Added new loop of length: " << loop->length << endl;
+            //cout << "Added new loop of length: " << loop->length << "; closeLoop = " << closeLoop << endl;
         }
+        //cout << "Region " << i << ": " << r->loops.size() << " loops" << endl;
     }
     
 
-    cout << "Defined " << regions.size() << " regions" << endl;
+    //cout << "Defined " << regions.size() << " regions" << endl;
+
+    /*
+    Now clear all inside loops for each region
+    */
+    for(int i = 0; i < regions.size(); i++){
+        int largestLoopIndex = 0;
+        int largestSize = -1;
+        if(regions[i]->loops.size() == 1){
+            continue;
+        }
+        for(int j = 0; j < regions[i]->loops.size(); j++){
+            if(regions[i]->loops[j]->length > largestSize){
+                largestSize = regions[i]->loops[j]->length;
+                largestLoopIndex = j;
+            }
+        }
+        Region *tmp = regions[0];
+        regions[0] = regions[largestLoopIndex];
+        regions[largestLoopIndex] = tmp;
+        for(int j = 1; j < regions[i]->loops.size(); j++){
+            delete regions[i]->loops[j];
+        }
+        regions[i]->loops.erase(regions[i]->loops.begin() + 1, regions[i]->loops.end());
+    }
+
+    cout << "Erased extraneous loops" << endl;
+
+    /*
+    for(int i = 0; i < regions.size(); i++){
+        cout << regions[i]->loops.size() << ", " << regions[i]->loops[0]->length << endl;
+    }
+    */
+    
     
 
+}
+
+float polygonLength(vector<Coordinate> &pixels){
+    float len = 0;
+    for(int i = 0; i < pixels.size()-1; i++){
+        int j = (i+1)%pixels.size();
+        len += Vector2Distance({(float)pixels[i].x, (float)pixels[i].y}, {(float)pixels[j].x, (float)pixels[j].y});
+    }
+    return len;
+}
+
+float visvalingam(vector<Coordinate> &pixels, int count, float originalLength){
+    for(int n = 0; n < count; n++){
+        int len = pixels.size();
+        float minArea = 999999;
+        int minIndex = -1;
+        for(int i = 0; i < len; i++){
+            int j = (i+1) % len;
+            int k = (j+1) % len;
+            //(1/2) |x1(y2 − y3) + x2(y3 − y1) + x3(y1 − y2)|
+            Coordinate p1 = pixels[i];
+            Coordinate p2 = pixels[j];
+            Coordinate p3 = pixels[k];
+            float area = 0.5f * abs(p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y));
+            if(area < minArea){
+                minArea = area;
+                minIndex = j;
+            }
+        }
+        if(minIndex > -1){
+            pixels.erase(pixels.begin() + minIndex);
+        }
+    }
+
+    float newLength = polygonLength(pixels);
+    
+    float error = abs((newLength - originalLength)) / originalLength * 100.0f;
+    
+    return error;
+}
+
+void generatePolygons(Image &image, vector<Region*> &regions){
+
+    int totalVertices = 0;
+    int reducedVertices = 0;
+
+    for(int i = 0; i < regions.size(); i++){
+        Loop *loop = regions[i]->loops[0];
+        loop->idealLength = loop->length;
+        float originalLength = polygonLength(loop->pixels);
+        
+        //Uncomment for no simplification:
+        //loop->simplifiedShape.clear();
+        //copy(loop->pixels.begin(), loop->pixels.end(), back_inserter(loop->simplifiedShape));
+        
+        for(int j = loop->length - 1; j >= 0; j--){
+            loop->simplifiedShape.clear();
+            copy(loop->pixels.begin(), loop->pixels.end(), back_inserter(loop->simplifiedShape));
+            
+            float error = visvalingam(loop->simplifiedShape, j, originalLength);
+            if(loop->length - j < loop->idealLength && error < polygonError){
+                loop->idealLength = loop->length - j;
+                loop->idealError = error;
+                break;
+            }
+        }
+        loop->simplifiedShape.clear();
+        copy(loop->pixels.begin(), loop->pixels.end(), back_inserter(loop->simplifiedShape));
+        float error = visvalingam(loop->simplifiedShape, loop->length - loop->idealLength, originalLength);
+        
+        /*
+        for(int i = 0; i < loop->simplifiedShape.size(); i++){
+            cout << loop->simplifiedShape[i].x << ", " << loop->simplifiedShape[i].y << endl;
+        }
+        */
+        
+        //cout << "Reduced region " << i << " from " << loop->length << " to " << loop->idealLength << ": error: " << error << endl;
+        totalVertices += loop->length;
+        reducedVertices += loop->idealLength;
+        
+    }
+
+    cout << "Completed polygon generation" << endl;
+    cout << "Reduced scene vertices from " << totalVertices << " to " << reducedVertices << endl;
 }
 
 int main(){
@@ -615,8 +847,8 @@ int main(){
                 
             }
             else if(completedSteps == 2){
-                
-
+                generatePolygons(definedPolygons, regions);
+                //definedTexture = LoadTextureFromImage(definedPolygons);
                 completedSteps++;
             }
         }
@@ -649,6 +881,9 @@ int main(){
         if(completedSteps >= 1){
             DrawTextureEx(filteredTexture, {stepWidth, screenHeight - imgHeight*scale}, 0, scale, WHITE);
 
+            if(GetMouseX() > stepWidth && GetMouseX() < stepWidth*2 && GetMouseY() > screenHeight - imgHeight*scale && GetMouseY() < screenHeight){
+                DrawTextureEx(filteredTexture, {0, 0}, 0, 1, WHITE);
+            }
             float w = (float)screenWidth / (float)colorSize;
             //cout << w << endl;
             
@@ -658,9 +893,31 @@ int main(){
         }
         if(completedSteps >= 2){
             DrawTextureEx(refinedTexture, {stepWidth*2, screenHeight - imgHeight*scale}, 0, scale, WHITE);
+            if(GetMouseX() > stepWidth*2 && GetMouseX() < stepWidth*3 && GetMouseY() > screenHeight - imgHeight*scale && GetMouseY() < screenHeight){
+                DrawTextureEx(refinedTexture, {0, 0}, 0, 1, WHITE);
+            }
         }
         if(completedSteps >= 3){
-            DrawTextureEx(filteredTexture, {stepWidth*3, screenHeight - imgHeight*scale}, 0, scale, WHITE);
+            for(int i = 0; i < regions.size(); i++){
+                vector<Coordinate> s = regions[i]->loops[0]->simplifiedShape;
+                if(regions[i]->loops[0]->closed){
+                    for(int j = 0; j < s.size(); j++){
+                        int k = (j+1)%s.size();
+                        if(regions[i]->color.a != 0){
+                            
+                            DrawLine(s[j].x, s[j].y, s[k].x, s[k].y, {regions[i]->color});
+                            DrawEllipse(s[j].x, s[j].y, 1, 1, BLACK);
+                            //DrawRectangle(s[j].x, s[j].y, 1, 1, regions[i]->color);
+                            
+                        }
+                        else {
+                            
+                            DrawLine(s[j].x, s[j].y, s[k].x, s[k].y, {regions[i]->color.r, regions[i]->color.g, regions[i]->color.b, 255});
+                        }
+                    }
+                }
+            }
+            //DrawTextureEx(definedTexture, {stepWidth*3, screenHeight - imgHeight*scale}, 0, scale, WHITE);
         }
         DrawLine(0, screenHeight-imgHeight*scale, screenWidth, screenHeight-imgHeight*scale, BLACK);
         DrawLine(0, screenHeight, screenWidth, screenHeight, BLACK);
