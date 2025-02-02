@@ -1,0 +1,25 @@
+<svg width="640" height = "143" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<mask id="sceneMask">
+<rect width="640" height="143" fill="white" />
+<path d="M 472 100 465 101 457 94 445 74 441 69 434 56 L 434 56 L 432 54 442 41 447 38 455 38 461 41 468 49 476 71 476 78 477 79 477 90 476 95 472 100" fill="black" />
+<path d="M 412 56 411 60 400 76 399 79 385 98 380 101 375 101 368 93 368 75 372 60 378 49 384 43 394 41 401 44 412 56" fill="black" />
+<path d="M 72 42 L 72 42 L 85 80 L 59 80" fill="black" />
+<path d="M 187 63 L 187 63 173 67 L 173 67 L 172 78 179 81 184 78 187 71 L 187 71" fill="black" />
+</mask>
+</defs>
+<path d="M 309 118 L 309 118 L 301 118 L 295 115 L 289 114 L 279 118 L 271 118 L 262 110 L 257 103 L 250 83 L 250 67 L 253 59 L 261 50 L 268 47 L 279 47 L 289 51 L 299 47 L 308 46 L 319 50 L 324 55 L 315 67 L 314 77 L 318 86 L 327 93 L 318 110" fill="rgb(0,0,0)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 79 24 L 79 24 L 65 24 L 42 84 L 40 92 L 36 100 L 32 113 L 32 118 L 44 118 L 47 107 L 53 93 L 91 93 L 94 98 L 98 112 L 101 118 L 114 117 L 108 102 L 107 97 L 103 89 L 101 81 L 97 73 L 87 44 L 83 36" fill="rgb(255,22,31)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 154 46 L 154 46 L 157 34 L 163 28 L 174 24 L 189 24 L 199 28 L 206 39 L 206 74 L 211 82 L 211 86 L 201 95 L 198 95 L 191 88 L 179 95 L 164 95 L 155 89 L 152 83 L 151 74 L 154 64 L 159 58 L 173 52 L 188 50 L 188 44 L 183 38 L 177 38 L 171 43 L 170 47" fill="rgb(0,0,0)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 456 116 L 456 116 L 453 114 L 443 104 L 426 77 L 417 60 L 412 55 L 408 49 L 403 44 L 396 40 L 391 39 L 382 43 L 378 47 L 372 57 L 369 65 L 367 74 L 352 74 L 352 69 L 357 53 L 364 40 L 374 30 L 383 25 L 388 24 L 395 24 L 400 25 L 407 28 L 414 33 L 423 43 L 426 49 L 433 57 L 439 68 L 443 73 L 444 76 L 448 81 L 449 84 L 460 99 L 459 101 L 459 114" fill="rgb(0,100,228)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 610 73 L 610 73 L 565 73 L 565 118 L 610 118" fill="rgb(255,187,0)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 561 69 L 561 69 L 561 24 L 517 24 L 516 68" fill="rgb(255,82,28)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 561 73 L 561 73 L 517 73 L 517 118 L 561 118" fill="rgb(0,168,243)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 609 69 L 609 69 L 566 69 L 566 24 L 610 25" fill="rgb(93,189,0)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 460 116 L 460 116 L 464 118 L 475 117 L 481 114 L 486 109 L 491 98 L 491 69 L 485 50 L 477 37 L 465 27 L 455 24 L 449 24 L 440 27 L 434 31 L 424 42 L 425 46 L 431 53 L 433 49 L 444 38 L 454 36 L 460 39 L 470 50 L 477 69 L 478 76 L 478 93 L 476 98 L 472 102 L 461 102 L 460 104" fill="rgb(0,130,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 421 68 L 421 68 L 411 88 L 399 106 L 392 113 L 385 117 L 374 118 L 362 114 L 354 104 L 351 93 L 351 81 L 353 75 L 366 75 L 366 91 L 369 98 L 376 103 L 383 101 L 390 94 L 400 78 L 414 58" fill="rgb(0,130,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 216 101 L 216 101 L 210 102 L 205 105 L 184 110 L 175 110 L 168 109 L 155 104 L 153 104 L 136 94 L 135 97 L 143 105 L 152 111 L 166 117 L 173 117 L 174 118 L 186 118 L 187 117 L 193 117 L 199 114 L 201 114 L 216 104" fill="rgb(255,187,0)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 307 24 L 307 24 L 298 26 L 292 31 L 288 38 L 287 45 L 293 46 L 299 43 L 304 38 L 307 31" fill="rgb(0,0,0)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 218 111 L 218 111 L 218 108 L 221 99 L 218 97 L 207 98 L 208 96 L 213 94 L 224 94 L 226 99 L 222 109" fill="rgb(255,187,0)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 516 116 L 516 116 L 516 73 L 516 116" fill="rgb(0,100,228)" fill-opacity="100%" mask="url(#sceneMask)"/>
+</svg>

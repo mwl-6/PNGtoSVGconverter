@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include <cmath>
+#include <fstream>
 #include <algorithm>
 #include "raylib.h"
 #include "raymath.h"
@@ -12,6 +13,8 @@ using namespace std;
 
 Color nullColor;
 float polygonError = 5.0f;
+int hashWidth = 10;
+bool smoothEdges = false;
 
 typedef struct ColorRecord {
     unsigned char r;
@@ -33,9 +36,11 @@ typedef struct Loop {
     int length;
     int idealLength;
     float idealError;
+    float area;
     Color color;
     vector<Coordinate> pixels;
     vector<Coordinate> simplifiedShape;
+
 } Loop;
 
 //A region is a space of like-color pixels that may contain several loops
@@ -163,7 +168,7 @@ void reduceColors(Image &image, int numColors, unordered_map<string, int> &color
     */
 
     //Grouping alike colors using spatial hashing
-    int hashWidth = 5;
+    
     int hashTableSize = recordedColors.size() * 5;
 
     //Records the index, bucket of each recorded color    
@@ -628,7 +633,7 @@ void refineBorders(Image &srcImage, Image &refinedImage, vector<Region*> &region
                         nxt.y = curr.y;
                     }
                     else {
-                        
+                        //cout << "No options for " << +r->color.r << ", " << +r->color.g << ", " << +r->color.b << endl;
                         //No other options, end the loop
                         closeLoop = true;
                     }
@@ -671,9 +676,9 @@ void refineBorders(Image &srcImage, Image &refinedImage, vector<Region*> &region
                 largestLoopIndex = j;
             }
         }
-        Region *tmp = regions[0];
-        regions[0] = regions[largestLoopIndex];
-        regions[largestLoopIndex] = tmp;
+        Loop *tmp = regions[i]->loops[0];
+        regions[i]->loops[0] = regions[i]->loops[largestLoopIndex];
+        regions[i]->loops[largestLoopIndex] = tmp;
         for(int j = 1; j < regions[i]->loops.size(); j++){
             delete regions[i]->loops[j];
         }
@@ -694,14 +699,58 @@ void refineBorders(Image &srcImage, Image &refinedImage, vector<Region*> &region
 
 float polygonLength(vector<Coordinate> &pixels){
     float len = 0;
-    for(int i = 0; i < pixels.size()-1; i++){
+    for(int i = 0; i < pixels.size(); i++){
         int j = (i+1)%pixels.size();
         len += Vector2Distance({(float)pixels[i].x, (float)pixels[i].y}, {(float)pixels[j].x, (float)pixels[j].y});
     }
     return len;
 }
+//Shoelace Algorithm
+float calculateArea(vector<Coordinate> &pixels){
+    if(pixels.size() == 1){
+        return 1;
+    }
+    float l = 0;
+    float r = 0;
+    for(int i = 0; i < pixels.size(); i++){
+        int j = (i+1) % pixels.size();
+        l += pixels[i].x * pixels[j].y;
+        r += pixels[i].y * pixels[j].x;
+    }
+    
+    
+    float area = abs(l - r) * 0.5f;
+    return area;
+}
 
-float visvalingam(vector<Coordinate> &pixels, int count, float originalLength){
+float distToLine(Vector2 p1, Vector2 p2, Vector2 p3){
+  float d = Vector2Distance(p1, p2);
+  
+  float u = ((p3.x - p1.x)*(p2.x - p1.x) + (p3.y - p1.y)*(p2.y - p1.y)) / (d*d);
+  
+  
+  float cx = p1.x + u * (p2.x - p1.x);
+  float cy = p1.y + u * (p2.y - p1.y);
+  
+  if(u < 0 || u > 1){
+    float d1 = Vector2Distance({p3.x, p3.y}, {p1.x, p1.y});
+    float d2 = Vector2Distance({p3.x, p3.y}, {p2.x, p2.y});
+    if(d1 < d2){
+      cx = p1.x;
+      cy = p1.y;
+    }
+    else {
+      cx = p2.x;
+      cy = p2.y;
+    }
+  }
+  float distance = Vector2Distance({p3.x, p3.y}, {cx, cy});
+  return distance;
+}
+
+float visvalingam(vector<Coordinate> &pixels, int count, float originalLength, vector<Coordinate> &reference){
+
+    //Perform visvalingam algorithm
     for(int n = 0; n < count; n++){
         int len = pixels.size();
         float minArea = 999999;
@@ -724,9 +773,42 @@ float visvalingam(vector<Coordinate> &pixels, int count, float originalLength){
         }
     }
 
-    float newLength = polygonLength(pixels);
+    //Calculate error:
+
+    float maxDist = 0;
+    for(int i = 0; i < reference.size(); i++){
+        float minDist = -1;
+        int minIndex = -1;
+        Coordinate p = reference[i];
+        
+        for(int c = 0; c < pixels.size(); c++){
+            int d = (c+1)%pixels.size();
+
+            float distance = distToLine({(float)pixels[c].x, (float)pixels[c].y}, {(float)pixels[d].x, (float)pixels[d].y}, {(float)p.x, (float)p.y});
+            
+            if(distance < minDist || minIndex == -1){
+                minDist = distance;
+                minIndex = c;
+            }
+            
+        }
+            
+        /*
+        if(minDist > maxDist && minDist < 99999){
+            maxDist = minDist;
+        }
+        */
+       maxDist += minDist;
+        
+    }
+    if(pixels.size() == 1){
+        maxDist = 9999999 * reference.size();
+    }
+
+    //float newLength = polygonLength(pixels);
+    //float newLength = calculateArea(pixels);
     
-    float error = abs((newLength - originalLength)) / originalLength * 100.0f;
+    float error = maxDist / reference.size();
     
     return error;
 }
@@ -736,21 +818,41 @@ void generatePolygons(Image &image, vector<Region*> &regions){
     int totalVertices = 0;
     int reducedVertices = 0;
 
+    for(int i = 0; i < image.width; i++){
+        for(int j = 0; j < image.height; j++){
+            ImageDrawPixel(&image, i, j, WHITE);
+        }
+    }
+
     for(int i = 0; i < regions.size(); i++){
+        for(int j = 0; j < regions[i]->loops.size(); j++){
+
+            for(int k = 0; k < regions[i]->loops[j]->pixels.size(); k++){
+                ImageDrawPixel(&image, regions[i]->loops[j]->pixels[k].x, regions[i]->loops[j]->pixels[k].y, PURPLE);
+            }
+        }
+    }
+
+    for(int i = 0; i < regions.size(); i++){
+        
         Loop *loop = regions[i]->loops[0];
         loop->idealLength = loop->length;
         float originalLength = polygonLength(loop->pixels);
+        float originalArea = calculateArea(loop->pixels);
+        //cout << "area: " << originalArea << endl;
+        float localPolygonError = polygonError;
         
         //Uncomment for no simplification:
         //loop->simplifiedShape.clear();
         //copy(loop->pixels.begin(), loop->pixels.end(), back_inserter(loop->simplifiedShape));
         
         for(int j = loop->length - 1; j >= 0; j--){
+            
             loop->simplifiedShape.clear();
             copy(loop->pixels.begin(), loop->pixels.end(), back_inserter(loop->simplifiedShape));
             
-            float error = visvalingam(loop->simplifiedShape, j, originalLength);
-            if(loop->length - j < loop->idealLength && error < polygonError){
+            float error = visvalingam(loop->simplifiedShape, j, originalLength, loop->pixels);
+            if(loop->length - j < loop->idealLength && error < localPolygonError){
                 loop->idealLength = loop->length - j;
                 loop->idealError = error;
                 break;
@@ -758,7 +860,7 @@ void generatePolygons(Image &image, vector<Region*> &regions){
         }
         loop->simplifiedShape.clear();
         copy(loop->pixels.begin(), loop->pixels.end(), back_inserter(loop->simplifiedShape));
-        float error = visvalingam(loop->simplifiedShape, loop->length - loop->idealLength, originalLength);
+        float error = visvalingam(loop->simplifiedShape, loop->length - loop->idealLength, originalLength, loop->pixels);
         
         /*
         for(int i = 0; i < loop->simplifiedShape.size(); i++){
@@ -776,18 +878,376 @@ void generatePolygons(Image &image, vector<Region*> &regions){
     cout << "Reduced scene vertices from " << totalVertices << " to " << reducedVertices << endl;
 }
 
-int main(){
+
+
+bool compareAreas(const Loop *a, const Loop *b){
+  return a->area > b->area;
+}
+
+typedef struct Bezier {
+    float x1, y1, cx1, cy1, cx2, cy2, x2, y2;
+} Bezier;
+
+/*
+Creates a Centripetal Catmull-Rom Spline using 4 vertices
+Then converts to a bezier format that can be rendered
+
+https://en.wikipedia.org/wiki/Centripetal_Catmull%E2%80%93Rom_spline
+Centripetal Catmull Rom Spline Implementation
+  
+Converting to cubic bezier
+https://stackoverflow.com/questions/30748316/catmull-rom-interpolation-on-svg-paths
+*/
+void CalculateBezierFromCatmullRom(Bezier &bezier, int x0, int y0, int x1, int y1, int x2, int y2, int x3, int y3){
+    float t[] = {0, 0, 0, 0};
+    float px[] = {(float)x0, (float)x1, (float)x2, (float)x3};
+    float py[] = {(float)y0, (float)y1, (float)y2, (float)y3};
+
+    //Check for duplicates
+    for(int i = 0; i < 4; i++){
+        for(int j = 0; j < 4; j++){
+            if(i==j)
+                continue;
+            if(px[i] == px[j] && py[i] == py[j]){
+                bezier.x1 = x1;
+                bezier.y1 = y1;
+                bezier.x2 = x2;
+                bezier.y2 = y2;
+                bezier.cx1 = x1;
+                bezier.cy1 = y1;
+                bezier.cx2 = x2;
+                bezier.cy2 = y2;
+                return;
+            }
+        }
+    }
+
+    //centripetal
+    float a = 0.5;
+    for(int tv = 1; tv < 4; tv++){
+      
+      int tv2 = (tv-1);
+      float dX = px[tv] - px[tv2];
+      float dY = py[tv] - py[tv2];
+      dX = dX*dX;
+      dY = dY*dY;
+      float l = sqrt(dX + dY);
+      
+      t[tv] = pow(l, a) + t[tv-1];
+      
+    }
+
+    float c1 = (t[2] - t[1]) / (t[2] - t[0]);
+    float c2 = (t[1] - t[0]) / (t[2] - t[0]);
+    float d1 = (t[3]-t[2])/(t[3]-t[1]);
+    float d2 = (t[2]-t[1])/(t[3]-t[1]);
+
+    float m1[] = {0, 0};
+    float m2[] = {0, 0};
+
+    m1[0] = (t[2]-t[1])*(c1*(px[1] - px[0]) / (t[1]-t[0]) + c2 * (px[2] - px[1]) / (t[2]-t[1]));
+    m1[1] = (t[2]-t[1])*(c1*(py[1] - py[0]) / (t[1]-t[0]) + c2 * (py[2] - py[1]) / (t[2]-t[1]));
+
+
+    m2[0] = (t[2]-t[1])*(d1*(px[2]-px[1])/(t[2]-t[1]) + d2*(px[3]-px[2])/(t[3]-t[2]));
+    m2[1] = (t[2]-t[1])*(d1*(py[2]-py[1])/(t[2]-t[1]) + d2*(py[3]-py[2])/(t[3]-t[2]));
+
+
+    
+    float q1[] = {px[1] + m1[0] / 3.0f, py[1] + m1[1] / 3.0f};
+    float q2[] = {px[2] - m2[0] / 3.0f, py[2] - m2[1] / 3.0f};
+
+    bezier.x1 = x1;
+    bezier.y1 = y1;
+    bezier.x2 = x2;
+    bezier.y2 = y2;
+    bezier.cx1 = q1[0];
+    bezier.cy1 = q1[1];
+    bezier.cx2 = q2[0];
+    bezier.cy2 = q2[1];
+
+
+}
+
+const float cornerThreshold = 122;
+
+bool treatPointAsCorner(int x0, int y0, int x1, int y1, int x2, int y2){
+    //reverse a
+    Vector2 a = {(float)x0 - x1, (float)y0 - y1};
+    Vector2 b = {(float)x2 - x1, (float)y2 - y1};
+    float d = Vector2DotProduct(a, b);
+    float distA = Vector2Length(a);
+    float distB = Vector2Length(b);
+    float angle = acosf(d / (distA * distB));
+    float angleDegrees = angle * 180.0f / PI;
+
+    return angleDegrees < cornerThreshold;
+
+}
+
+
+void writeToFile(string path, vector<Region*> &regions, Image &reference){
+    cout << "Writing to " << path << endl;
+    vector<Loop *> loops;
+    for(int i = regions.size()-1; i >= 0; i--){
+        Loop *loop = regions[i]->loops[0];
+        
+        loop->area = calculateArea(loop->simplifiedShape);
+        //cout << loop->pixels.size() << ", " << loop->area << endl;
+        
+        loops.push_back(loop);
+        
+
+    }
+    cout << "Calculated areas" << endl;
+
+    std::sort(loops.begin(), loops.end(), compareAreas);
+
+    //Avoid treating clear background as a rectangle mask
+    int backgroundIndex = -1;
+    int backgroundSize = -1;
+    for(int i = 0; i < loops.size(); i++){
+        if(colorEqual(loops[i]->color, nullColor) && loops[i]->area > backgroundSize){
+            backgroundIndex = i;
+            backgroundSize = loops[i]->area;
+        }
+    }
+
+    //Final round of refinement (remove anymore extraneous vertices)
+
+    float cullingThreshold = 5;
+    int removeCount = 0;
+    for(int k = 0; k < 1; k++){
+        bool removed = false;
+        for(int i = 0; i < loops.size(); i++){
+            //visvalingam(loops[i]->simplifiedShape, loops[i]->simplifiedShape.size()/2, loops[i]->simplifiedShape.size());
+            for(int j = loops[i]->simplifiedShape.size()-2; j >= 0; j--){
+
+                int l = j+1;
+                
+                int m = j-1;
+                if(m == -1){
+                    m = loops[i]->simplifiedShape.size()-1;
+                }
+
+                float d1 = Vector2Distance({(float)loops[i]->simplifiedShape[l].x, (float)loops[i]->simplifiedShape[l].y}, {(float)loops[i]->simplifiedShape[j].x, (float)loops[i]->simplifiedShape[j].y} );
+                float d2 = Vector2Distance({(float)loops[i]->simplifiedShape[j].x, (float)loops[i]->simplifiedShape[j].y}, {(float)loops[i]->simplifiedShape[m].x, (float)loops[i]->simplifiedShape[m].y} );
+                float d3 = Vector2Distance({(float)loops[i]->simplifiedShape[l].x, (float)loops[i]->simplifiedShape[l].y}, {(float)loops[i]->simplifiedShape[m].x, (float)loops[i]->simplifiedShape[m].y} );
+                //cout << d1 << "+" << d2 << " = " << d3 << "... " << (d3/(d1+d2))<< endl;
+                if(d2+d1 < cullingThreshold){
+                    //loops[i]->simplifiedShape.erase(loops[i]->simplifiedShape.begin() + j);
+                    //removed = true;
+                    //removeCount++;
+                }
+
+            }
+        }
+    }
+    cout << "Cleared " << removeCount << " extra vertices" << endl;
+    //cout << "Sorted by area" << endl;
+    
+    ofstream userFile(path);
+    if(userFile.is_open()){
+        userFile.clear();
+        userFile << "<svg width=\"" << reference.width << "\" height = \"" << reference.height << "\" xmlns=\"http://www.w3.org/2000/svg\">" << endl;
+        
+        //Create Masks
+        userFile << "<defs>\n<mask id=\"sceneMask\">" << endl;
+        userFile << "<rect width=\"" << reference.width << "\" height=\"" << reference.height << "\" fill=\"white\" />" << endl; 
+        for(int i = 0; i < loops.size(); i++){
+            bool curve = false;
+            if(loops[i]->idealLength > 5 && smoothEdges){
+                curve = true;
+            }
+            if(!colorEqual(loops[i]->color, nullColor) || (i == backgroundIndex)){
+                continue;
+            }
+            userFile << "<path d=\"M ";
+            userFile << loops[i]->simplifiedShape[0].x << " " << loops[i]->simplifiedShape[0].y << " ";
+            
+            int start = curve ? 1 : 0;
+            for(int j = start; j < loops[i]->idealLength; j+=1){
+                int h = (j-1)%loops[i]->idealLength;
+                if(j == 0)
+                    h = loops[i]->idealLength-1;
+                int k = (j+1)%loops[i]->idealLength;
+                int l = (k+1)%loops[i]->idealLength;
+                
+                bool sharpCorner = treatPointAsCorner(loops[i]->simplifiedShape[h].x, loops[i]->simplifiedShape[h].y,
+                loops[i]->simplifiedShape[j].x, loops[i]->simplifiedShape[j].y,
+                loops[i]->simplifiedShape[k].x, loops[i]->simplifiedShape[k].y);
+
+                sharpCorner = sharpCorner | treatPointAsCorner(loops[i]->simplifiedShape[j].x, loops[i]->simplifiedShape[j].y,
+                loops[i]->simplifiedShape[k].x, loops[i]->simplifiedShape[k].y,
+                loops[i]->simplifiedShape[l].x, loops[i]->simplifiedShape[l].y);
+
+                Bezier b;
+                CalculateBezierFromCatmullRom(b, loops[i]->simplifiedShape[h].x, loops[i]->simplifiedShape[h].y,
+                loops[i]->simplifiedShape[j].x, loops[i]->simplifiedShape[j].y,
+                loops[i]->simplifiedShape[k].x, loops[i]->simplifiedShape[k].y,
+                loops[i]->simplifiedShape[l].x, loops[i]->simplifiedShape[l].y);
+
+                if(curve && !sharpCorner){
+                    userFile << "C ";
+                    userFile << b.cx1 << " " << b.cy1 << " ";
+                    userFile << b.cx2 << " " << b.cy2 << " ";
+                    userFile << b.x2 << " " << b.y2;
+                }
+                else if(sharpCorner){
+                    userFile << "L ";
+                    userFile << b.x1 << " " << b.y1;
+                    //userFile << b.x2 << " " << b.y2;
+                }
+                else {
+                    userFile << b.x2 << " " << b.y2;
+                }
+                
+                if(j != loops[i]->idealLength-1){
+                    userFile << " ";
+                }
+            }
+            userFile << "\" fill=\"black\" />" << endl;
+
+        }
+        userFile << "</mask>\n</defs>" << endl;
+
+        //Add Polylines
+        for(int i = 0; i < loops.size(); i++){
+            bool curve = false;
+            if(loops[i]->idealLength > 5 && smoothEdges){
+                curve = true;
+            }
+            if(colorEqual(loops[i]->color, nullColor)){
+                continue;
+            }
+            userFile << "<path d=\"M ";
+            userFile << loops[i]->simplifiedShape[0].x << " " << loops[i]->simplifiedShape[0].y << " ";
+            
+            int start = curve ? 1 : 0;
+            for(int j = start; j < loops[i]->idealLength; j+=1){
+                int h = (j-1)%loops[i]->idealLength;
+                if(j == 0)
+                    h = loops[i]->idealLength-1;
+                int k = (j+1)%loops[i]->idealLength;
+                int l = (k+1)%loops[i]->idealLength;
+                
+                bool sharpCorner = treatPointAsCorner(loops[i]->simplifiedShape[h].x, loops[i]->simplifiedShape[h].y,
+                loops[i]->simplifiedShape[j].x, loops[i]->simplifiedShape[j].y,
+                loops[i]->simplifiedShape[k].x, loops[i]->simplifiedShape[k].y);
+
+                sharpCorner = sharpCorner | treatPointAsCorner(loops[i]->simplifiedShape[j].x, loops[i]->simplifiedShape[j].y,
+                loops[i]->simplifiedShape[k].x, loops[i]->simplifiedShape[k].y,
+                loops[i]->simplifiedShape[l].x, loops[i]->simplifiedShape[l].y);
+
+                Bezier b;
+                CalculateBezierFromCatmullRom(b, loops[i]->simplifiedShape[h].x, loops[i]->simplifiedShape[h].y,
+                loops[i]->simplifiedShape[j].x, loops[i]->simplifiedShape[j].y,
+                loops[i]->simplifiedShape[k].x, loops[i]->simplifiedShape[k].y,
+                loops[i]->simplifiedShape[l].x, loops[i]->simplifiedShape[l].y);
+
+                if(curve && !sharpCorner){
+                    userFile << "C ";
+                    userFile << b.cx1 << " " << b.cy1 << " ";
+                    userFile << b.cx2 << " " << b.cy2 << " ";
+                    userFile << b.x2 << " " << b.y2;
+                }
+                else if(sharpCorner){
+                    userFile << "L ";
+                    userFile << b.x1 << " " << b.y1;
+                    //userFile << b.x2 << " " << b.y2;
+                }
+                else {
+                    userFile << "L " << b.x1 << " " << b.y1;
+                }
+                
+                if(j != loops[i]->idealLength-1){
+                    userFile << " ";
+                }
+            }
+            userFile << "\" fill=\"rgb(" << +loops[i]->color.r << "," << +loops[i]->color.g << "," << +loops[i]->color.b << ")\"";
+            userFile << " fill-opacity=\"" << (int)((+loops[i]->color.a) / (255.0f) * 100.0f) << "%\" mask=\"url(#sceneMask)\"/>" << endl;
+        
+        }
+        
+        userFile << "</svg>" << endl;
+        
+        cout << "Wrote to file: " << path << endl;
+        userFile.close();
+
+        
+    }
+    else {
+        cout << "Failed to write to file " << path << endl;
+    }
+
+}
+
+int main(int argc, char *argv[]){
+
+    /*
+    Arguments:
+    Image Path
+    Output Path
+    Number of colors
+    % Error Allowed
+    Display Interactive Visualization? (true/false)
+
+    */
 
     int screenWidth = 1280;
     int screenHeight = 720;
 
     string filePath;
+    string outputPath;
     int colorSize;
+    bool interaction = false;
 
-    cout << "Please enter an image file: " << endl;
-    getline(cin, filePath);
-    cout << "Please enter the color palette size: " << endl;
-    cin >> colorSize;
+    if(argc < 4){
+        cout << "Not enough arguments!" << endl;
+        exit(0);
+    }
+    if(argc > 7){
+        cout << "Too many arguments!" << endl;
+        exit(0);
+    }
+
+    if(argc >= 4){
+        filePath = argv[1];
+        cout << "Image path: " << filePath << endl;
+        outputPath = argv[2];
+        cout << "Output path: " << outputPath << endl;
+        
+        colorSize = stoi(argv[3]);
+        cout << "# of Colors: " << colorSize << endl;
+    }
+    if(argc >= 7){
+        polygonError = stof(argv[4]);
+        cout << "Polygon % error: " << polygonError << endl;
+
+        if(string(argv[5]) == "true"){
+            interaction = true;
+            cout << "Opening interactive display" << endl;
+        }
+        else {
+            cout << "No display" << endl;
+        }
+        if(string(argv[6]) == "true"){
+            smoothEdges = true;
+        }
+        else {
+            smoothEdges = false;
+        }
+    }
+    else {
+        cout << "No polygon % error specified. Default to 5%" << endl;
+        cout << "No display chosen. Default to command line" << endl;
+    }
+    
+
+    //cout << "Please enter an image file: " << endl;
+    //getline(cin, filePath);
+    //cout << "Please enter the color palette size: " << endl;
+    //cin >> colorSize;
 
 	InitWindow(screenWidth, screenHeight, "Image to SVG Converter");
 
@@ -843,12 +1303,15 @@ int main(){
             else if(completedSteps == 1){
                 refineBorders(filteredImg, refinedBorders, regions);
                 refinedTexture = LoadTextureFromImage(refinedBorders);
+                definedPolygons = ImageCopy(filteredImg);
+                
                 completedSteps++;
                 
             }
             else if(completedSteps == 2){
                 generatePolygons(definedPolygons, regions);
-                //definedTexture = LoadTextureFromImage(definedPolygons);
+                writeToFile(outputPath, regions, userImg);
+                definedTexture = LoadTextureFromImage(definedPolygons);
                 completedSteps++;
             }
         }
@@ -877,19 +1340,35 @@ int main(){
         }
         DrawRectangle(screenWidth-40, 0, 40, 40, selected);
         
-        
-        if(completedSteps >= 1){
-            DrawTextureEx(filteredTexture, {stepWidth, screenHeight - imgHeight*scale}, 0, scale, WHITE);
-
-            if(GetMouseX() > stepWidth && GetMouseX() < stepWidth*2 && GetMouseY() > screenHeight - imgHeight*scale && GetMouseY() < screenHeight){
-                DrawTextureEx(filteredTexture, {0, 0}, 0, 1, WHITE);
+        //Labels for steps
+        for(int i = 0; i < completedSteps+1; i++){
+            DrawLine(i * stepWidth, screenHeight - imgHeight*scale, i * stepWidth, screenHeight, BLACK);
+            if(i != 1){
+                DrawText(headers[i].c_str(), i * stepWidth + stepWidth / 4.0f, screenHeight - imgHeight*scale - 50, 20, BLACK);
             }
+            else {
+                char t[30];
+                sprintf(t, "%s%d%s", "Reduced Colors [", colorSize, "]");
+                DrawText(t, i * stepWidth + stepWidth / 4.0f, screenHeight - imgHeight*scale - 50, 20, BLACK);
+            }
+        }
+        DrawLine(0, screenHeight-imgHeight*scale, screenWidth, screenHeight-imgHeight*scale, BLACK);
+        DrawLine(0, screenHeight, screenWidth, screenHeight, BLACK);
+
+        if(completedSteps >= 1){
             float w = (float)screenWidth / (float)colorSize;
             //cout << w << endl;
             
             for(int i = 0; i < colorSize; i++){
                 DrawRectangle(i*(int)w, 160, (int)w, min((int)w, 100), {(unsigned char)recordedColors[i].r, (unsigned char)recordedColors[i].g, (unsigned char)recordedColors[i].b, (unsigned char)recordedColors[i].a});
             }
+
+            DrawTextureEx(filteredTexture, {stepWidth, screenHeight - imgHeight*scale}, 0, scale, WHITE);
+
+            if(GetMouseX() > stepWidth && GetMouseX() < stepWidth*2 && GetMouseY() > screenHeight - imgHeight*scale && GetMouseY() < screenHeight){
+                DrawTextureEx(filteredTexture, {0, 0}, 0, 1, WHITE);
+            }
+            
         }
         if(completedSteps >= 2){
             DrawTextureEx(refinedTexture, {stepWidth*2, screenHeight - imgHeight*scale}, 0, scale, WHITE);
@@ -917,23 +1396,10 @@ int main(){
                     }
                 }
             }
-            //DrawTextureEx(definedTexture, {stepWidth*3, screenHeight - imgHeight*scale}, 0, scale, WHITE);
+            DrawTextureEx(definedTexture, {stepWidth*3, screenHeight - imgHeight*scale}, 0, scale, WHITE);
         }
-        DrawLine(0, screenHeight-imgHeight*scale, screenWidth, screenHeight-imgHeight*scale, BLACK);
-        DrawLine(0, screenHeight, screenWidth, screenHeight, BLACK);
-
-        //Labels for steps
-        for(int i = 0; i < completedSteps+1; i++){
-            DrawLine(i * stepWidth, screenHeight - imgHeight*scale, i * stepWidth, screenHeight, BLACK);
-            if(i != 1){
-                DrawText(headers[i].c_str(), i * stepWidth + stepWidth / 4.0f, screenHeight - imgHeight*scale - 50, 20, BLACK);
-            }
-            else {
-                char t[30];
-                sprintf(t, "%s%d%s", "Reduced Colors [", colorSize, "]");
-                DrawText(t, i * stepWidth + stepWidth / 4.0f, screenHeight - imgHeight*scale - 50, 20, BLACK);
-            }
-        }
+        
+        
         
 	
 		EndDrawing();
