@@ -1,0 +1,14 @@
+<svg width="512" height = "512" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<mask id="sceneMask">
+<rect width="512" height="512" fill="white" />
+</mask>
+</defs>
+<path d="M 0 511 L 0 511 L 0 0 L 511 0 L 511 511" fill="rgb(35,177,77)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 431 440 L 431 440 L 431 75 L 82 75 L 81 437 L 82 440" fill="rgb(163,73,163)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 147 378 L 147 378 L 147 146 L 376 146 L 376 378" fill="rgb(35,177,77)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 339 342 L 339 342 L 339 188 L 184 188 L 184 342" fill="rgb(163,73,163)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 307 228 L 307 228 L 222 228 L 223 306 L 306 306" fill="rgb(35,177,77)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 286 285 L 286 285 L 246 285 L 246 251 L 285 251" fill="rgb(163,73,163)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 260 276 L 260 276 L 259 264 L 260 263 L 276 263 L 277 275 L 276 276" fill="rgb(35,177,77)" fill-opacity="100%" mask="url(#sceneMask)"/>
+</svg>

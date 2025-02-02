@@ -1,0 +1,71 @@
+<svg width="800" height = "421" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<mask id="sceneMask">
+<rect width="800" height="421" fill="white" />
+</mask>
+</defs>
+<path d="M 319 0 L 319 0 L 0 0 L 0 226 L 319 226" fill="rgb(0,38,100)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 0 323 L 0 323 L 0 291 L 799 291 L 799 323" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 799 388 L 799 388 L 799 356 L 0 356 L 0 388" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 799 258 L 799 258 L 799 227 L 0 227 L 0 258" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 0 290 L 0 290 L 0 259 L 799 259 L 799 290" fill="rgb(187,19,62)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 799 355 L 799 355 L 799 324 L 0 324 L 0 355" fill="rgb(187,19,62)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 799 420 L 799 420 L 799 389 L 0 389 L 0 420" fill="rgb(187,19,62)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 799 194 L 799 194 L 320 194 L 320 226 L 799 226" fill="rgb(187,19,62)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 320 129 L 320 129 L 320 97 L 799 97 L 799 129" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 799 64 L 799 64 L 799 32 L 320 32 L 320 64" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 799 193 L 799 193 L 799 162 L 320 162 L 320 193" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 320 161 L 320 161 L 320 130 L 799 130 L 799 161" fill="rgb(187,19,62)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 799 96 L 799 96 L 799 65 L 320 65 L 320 96" fill="rgb(187,19,62)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 320 31 L 320 31 L 320 0 L 799 0 L 799 31" fill="rgb(187,19,62)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 33 122 L 33 122 L 31 115 L 37 109 L 30 109 L 27 101 L 24 109 L 16 109 L 22 114 L 21 122 L 24 119 L 28 118" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 33 31 L 33 31 L 31 24 L 37 18 L 30 18 L 27 10 L 24 18 L 16 18 L 22 23 L 21 31 L 24 28 L 28 27" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 298 121 L 298 121 L 297 114 L 302 109 L 295 109 L 292 103 L 289 109 L 281 109 L 288 115 L 286 119 L 286 122 L 291 118" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 86 213 L 86 213 L 84 206 L 90 200 L 83 200 L 80 192 L 77 200 L 69 200 L 75 205 L 74 213 L 80 208" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 298 31 L 298 31 L 297 23 L 302 18 L 295 18 L 292 12 L 289 18 L 281 18 L 288 24 L 286 28 L 286 31 L 291 27 L 295 28" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 192 31 L 192 31 L 190 24 L 196 18 L 189 18 L 186 10 L 183 18 L 175 18 L 182 24 L 180 31 L 185 27 L 189 28" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 139 31 L 139 31 L 137 24 L 143 18 L 136 18 L 133 10 L 130 18 L 122 18 L 129 24 L 127 31 L 132 27 L 136 28" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 192 122 L 192 122 L 190 115 L 196 110 L 196 109 L 189 109 L 186 103 L 183 109 L 175 109 L 182 115 L 180 119 L 180 122 L 183 119 L 187 118" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 298 212 L 298 212 L 297 205 L 302 201 L 302 200 L 295 200 L 292 194 L 289 200 L 281 200 L 288 206 L 286 210 L 286 213 L 292 208" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 245 31 L 245 31 L 243 24 L 249 19 L 249 18 L 242 18 L 239 12 L 236 18 L 228 18 L 235 24 L 233 28 L 233 31 L 238 27 L 242 28" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 245 122 L 245 122 L 243 115 L 249 110 L 249 109 L 242 109 L 239 103 L 236 109 L 228 109 L 235 115 L 233 119 L 233 122 L 238 118 L 242 119" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 192 213 L 192 213 L 190 206 L 196 200 L 189 200 L 186 192 L 183 200 L 175 200 L 182 206 L 180 213 L 186 208" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 33 213 L 33 213 L 31 206 L 37 200 L 30 200 L 28 197 L 27 192 L 24 200 L 16 200 L 22 205 L 22 208 L 20 212 L 25 210 L 27 208" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 86 31 L 86 31 L 84 24 L 90 18 L 83 18 L 81 15 L 80 10 L 77 18 L 69 18 L 76 24 L 74 31 L 77 28 L 81 27" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 86 122 L 86 122 L 84 115 L 90 109 L 83 109 L 81 106 L 80 101 L 77 109 L 69 109 L 76 115 L 74 122 L 77 119 L 81 118" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 139 122 L 139 122 L 137 115 L 143 109 L 136 109 L 134 106 L 133 101 L 130 109 L 122 109 L 129 115 L 127 122 L 130 119 L 134 118" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 219 54 L 219 54 L 213 49 L 206 53 L 208 46 L 203 41 L 209 41 L 211 39 L 212 34 L 216 41 L 224 41 L 217 46" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 244 205 L 244 205 L 249 200 L 242 200 L 239 194 L 236 200 L 228 200 L 235 206 L 233 210 L 233 213 L 239 208 L 244 212" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 110 143 L 110 143 L 112 142 L 111 137 L 116 132 L 110 132 L 107 125 L 103 132 L 95 132 L 102 137 L 101 142 L 103 143 L 107 140" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 139 213 L 139 213 L 137 206 L 143 200 L 136 200 L 134 197 L 133 192 L 130 200 L 122 200 L 129 206 L 127 213 L 133 208" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 271 144 L 271 144 L 270 137 L 275 132 L 269 132 L 266 124 L 264 130 L 262 132 L 254 132 L 261 137 L 260 142 L 262 143 L 265 140" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 270 52 L 270 52 L 271 49 L 270 46 L 275 42 L 275 41 L 269 41 L 267 39 L 267 36 L 266 35 L 266 33 L 265 34 L 265 36 L 264 37 L 264 39 L 262 41 L 254 41 L 256 42 L 258 44 L 259 44 L 261 46 L 261 48 L 260 49 L 260 53 L 262 52 L 264 50 L 266 49 L 268 51" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 298 167 L 298 167 L 297 160 L 301 155 L 296 155 L 293 151 L 292 147 L 289 155 L 281 155 L 288 160 L 286 167 L 293 163" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 245 76 L 245 76 L 244 69 L 248 64 L 242 64 L 239 56 L 236 64 L 228 64 L 235 69 L 233 76 L 240 72" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 298 76 L 298 76 L 297 69 L 301 64 L 295 64 L 292 56 L 289 64 L 281 64 L 288 69 L 286 76 L 293 72" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 60 145 L 60 145 L 54 140 L 47 144 L 49 137 L 44 132 L 50 132 L 52 129 L 53 124 L 55 130 L 57 132 L 63 132 L 61 135 L 58 137" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 192 167 L 192 167 L 192 164 L 190 160 L 195 155 L 189 155 L 186 147 L 183 155 L 175 155 L 182 160 L 180 164 L 180 167 L 187 163" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 166 145 L 166 145 L 160 140 L 153 144 L 155 137 L 150 133 L 150 132 L 156 132 L 158 130 L 159 125 L 161 130 L 163 132 L 169 132 L 167 135 L 164 137" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 113 54 L 113 54 L 107 49 L 100 53 L 102 46 L 97 42 L 97 41 L 103 41 L 105 39 L 106 34 L 108 39 L 110 41 L 116 41 L 114 44 L 111 46" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 218 144 L 218 144 L 217 137 L 222 132 L 216 132 L 214 130 L 213 125 L 209 132 L 201 132 L 208 137 L 207 142 L 209 143 L 212 140" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 33 76 L 33 76 L 26 72 L 23 75 L 21 75 L 22 69 L 18 65 L 19 64 L 24 64 L 27 56 L 29 63 L 30 64 L 36 64 L 34 67 L 31 69" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 59 53 L 59 53 L 58 46 L 63 41 L 57 41 L 55 39 L 54 34 L 52 36 L 52 39 L 50 41 L 42 41 L 49 46 L 48 51 L 50 52 L 54 49" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 139 76 L 139 76 L 137 69 L 142 64 L 136 64 L 133 56 L 130 64 L 122 64 L 129 69 L 127 73 L 127 76 L 133 72" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 192 76 L 192 76 L 190 69 L 195 64 L 189 64 L 186 56 L 183 64 L 175 64 L 182 69 L 180 73 L 180 76 L 187 72" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 163 52 L 163 52 L 159 49 L 156 52 L 153 53 L 155 46 L 150 41 L 156 41 L 158 39 L 159 34 L 161 39 L 163 41 L 169 41 L 167 44 L 164 46 L 165 51" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 215 96 L 215 96 L 212 95 L 207 99 L 207 95 L 208 91 L 204 88 L 205 87 L 209 87 L 211 85 L 211 82 L 212 79 L 214 82 L 214 84 L 216 87 L 223 87 L 220 89 L 217 92 L 219 99" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 139 167 L 139 167 L 139 164 L 137 160 L 142 155 L 136 155 L 133 147 L 130 155 L 122 155 L 129 160 L 127 164 L 127 167 L 132 163 L 134 163" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 86 75 L 86 75 L 84 75 L 80 72 L 76 75 L 74 75 L 76 69 L 71 65 L 72 64 L 77 64 L 80 56 L 82 63 L 83 64 L 91 64 L 84 69" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 59 190 L 59 190 L 58 182 L 62 178 L 57 178 L 55 176 L 54 170 L 50 178 L 43 178 L 49 183 L 47 190 L 54 186" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 111 98 L 111 98 L 112 95 L 111 92 L 115 88 L 115 87 L 110 87 L 108 85 L 107 79 L 105 82 L 105 84 L 103 87 L 96 87 L 98 88 L 102 92 L 100 99 L 101 99 L 104 96 L 107 95" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 219 190 L 219 190 L 214 186 L 210 187 L 207 190 L 208 182 L 204 179 L 204 178 L 209 178 L 211 175 L 212 170 L 214 173 L 214 175 L 216 178 L 223 178 L 217 183" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 245 167 L 245 167 L 243 160 L 248 155 L 243 155 L 240 151 L 239 147 L 236 155 L 228 155 L 235 160 L 233 167 L 240 163" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 33 167 L 33 167 L 29 164 L 26 163 L 23 166 L 21 166 L 22 159 L 18 156 L 19 155 L 23 155 L 26 151 L 27 147 L 29 154 L 30 155 L 36 155 L 34 158 L 31 160" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 86 165 L 86 165 L 84 166 L 81 163 L 79 163 L 76 166 L 74 166 L 75 161 L 76 160 L 71 156 L 71 155 L 76 155 L 79 151 L 80 147 L 82 154 L 83 155 L 89 155 L 87 158 L 84 160" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 272 190 L 272 190 L 267 186 L 263 187 L 260 190 L 261 182 L 257 179 L 257 178 L 262 178 L 264 176 L 265 170 L 267 173 L 267 175 L 269 178 L 276 178 L 270 183" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 272 99 L 272 99 L 272 97 L 270 98 L 268 96 L 265 95 L 260 99 L 260 95 L 261 91 L 257 88 L 258 87 L 262 87 L 264 85 L 265 80 L 267 82 L 267 84 L 269 87 L 276 87 L 273 89 L 270 92" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 112 189 L 112 189 L 111 182 L 115 178 L 110 178 L 108 175 L 107 170 L 105 173 L 105 175 L 103 178 L 96 178 L 102 182 L 100 190 L 104 187 L 107 186" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 165 98 L 165 98 L 164 92 L 168 87 L 163 87 L 161 84 L 160 79 L 156 87 L 149 87 L 151 88 L 155 92 L 154 97 L 153 98 L 160 95" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 165 189 L 165 189 L 164 183 L 168 178 L 163 178 L 161 175 L 160 170 L 158 173 L 158 175 L 156 178 L 149 178 L 155 182 L 154 189 L 160 186" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+<path d="M 59 99 L 59 99 L 58 91 L 62 87 L 57 87 L 55 85 L 54 80 L 50 87 L 43 87 L 45 88 L 49 92 L 47 99 L 51 96 L 54 95" fill="rgb(255,255,255)" fill-opacity="100%" mask="url(#sceneMask)"/>
+</svg>
